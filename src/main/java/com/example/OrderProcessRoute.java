@@ -13,65 +13,65 @@ public class OrderProcessRoute extends RouteBuilder {
     @Override
     public void configure() {
 
-        // Paso 1: recibir pedidos (simulados con un timer)
-        from("timer:new-order?period=5000")
-            .routeId("new-order")
+        // Crea o "recibe" un pedido cada 5 segundos
+        from("timer:nueva-orden?period=5000")
+            .routeId("nueva-orden") // crea la ruta "nueva-orden"
             .process(exchange -> {
-                String orderId = UUID.randomUUID().toString();
-                exchange.getMessage().setHeader("orderId", orderId);
-                orderStates.put(orderId, "CREATED");
-                exchange.getMessage().setBody("Order received: " + orderId);
+                String ordenId = UUID.randomUUID().toString(); // Genera el ID 
+                exchange.getMessage().setHeader("ordenId", ordenId);
+                orderStates.put(ordenId, "CREADA");
+                exchange.getMessage().setBody("Orden recibida: " + ordenId);
             })
             .log("${body}")
-            .to("direct:validate-inventory");
+            .to("direct:validacion-inventario"); // manda a la ruta de validación de inventario
 
         // Paso 2: validar inventario
-        from("direct:validate-inventory")
+        from("direct:validacion-inventario") // llega el mensaje para ser validado
             .process(exchange -> {
-                String orderId = exchange.getMessage().getHeader("orderId", String.class);
-                orderStates.put(orderId, "INVENTORY_VALIDATED");
-                exchange.getMessage().setBody("Inventory validated for order " + orderId);
+                String ordenId = exchange.getMessage().getHeader("ordenId", String.class);
+                orderStates.put(ordenId, "VALIDADO"); // cambia su estado
+                exchange.getMessage().setBody("Inventario validado para la orden: " + ordenId);
             })
             .log("${body}")
-            .to("direct:process-payment");
+            .to("direct:proceso-pago"); // manda a la ruta de procesamiento de pago
 
         // Paso 3: procesar pago
-        from("direct:process-payment")
+        from("direct:proceso-pago")
             .process(exchange -> {
-                String orderId = exchange.getMessage().getHeader("orderId", String.class);
-                boolean paymentSuccess = Math.random() > 0.3; // 70% chance de éxito
-                if (paymentSuccess) {
-                    orderStates.put(orderId, "PAID");
-                    exchange.getMessage().setBody("Payment processed for order " + orderId);
-                    exchange.getMessage().setHeader("paymentStatus", "SUCCESS");
+                String ordenId = exchange.getMessage().getHeader("ordenId", String.class);
+                boolean pagoExitoso = Math.random() > 0.3; // 70% chance de éxito
+                if (pagoExitoso) {
+                    orderStates.put(ordenId, "PAGADO");
+                    exchange.getMessage().setBody("Pago procesado para la orden: " + ordenId);
+                    exchange.getMessage().setHeader("estadoPago", "PAGADO");
                 } else {
-                    orderStates.put(orderId, "PAYMENT_FAILED");
-                    exchange.getMessage().setBody("Payment failed for order " + orderId);
-                    exchange.getMessage().setHeader("paymentStatus", "FAILURE");
+                    orderStates.put(ordenId, "RECHAZADO");
+                    exchange.getMessage().setBody("Pago rechazado para la orden: " + ordenId);
+                    exchange.getMessage().setHeader("estadoPago", "RECHAZADO");
                 }
             })
             .log("${body}")
             .choice()
-                .when(header("paymentStatus").isEqualTo("SUCCESS"))
-                    .to("direct:confirm-order")
+                .when(header("estadoPago").isEqualTo("PAGADO")) //cuando el header es PAGADO manda la ruta de confirmados
+                    .to("direct:orden-confirmada")
                 .otherwise()
-                    .to("direct:reject-order");
+                    .to("direct:orden-rechazada"); // osino a la cola de rechazados
 
         // Paso 4a: confirmar pedido
-        from("direct:confirm-order")
+        from("direct:orden-confirmada")
             .process(exchange -> {
-                String orderId = exchange.getMessage().getHeader("orderId", String.class);
-                orderStates.put(orderId, "CONFIRMED");
-                exchange.getMessage().setBody("Order confirmed: " + orderId);
+                String ordenId = exchange.getMessage().getHeader("ordenId", String.class);
+                orderStates.put(ordenId, "CONFIRMADA");
+                exchange.getMessage().setBody("Orden confirmada: " + ordenId);
             })
             .log("${body}");
 
         // Paso 4b: rechazar pedido
-        from("direct:reject-order")
+        from("direct:orden-rechazada")
             .process(exchange -> {
-                String orderId = exchange.getMessage().getHeader("orderId", String.class);
-                orderStates.put(orderId, "REJECTED");
-                exchange.getMessage().setBody("Order rejected: " + orderId);
+                String ordenId = exchange.getMessage().getHeader("ordenId", String.class);
+                orderStates.put(ordenId, "RECHAZADA");
+                exchange.getMessage().setBody("Orden rechazada: " + ordenId);
             })
             .log("${body}");
     }
