@@ -57,7 +57,7 @@ public class OrderProcessRoute extends RouteBuilder {
                 .otherwise()
                     .to("direct:orden-rechazada"); // osino a la cola de rechazados
 
-        // Paso 4a: confirmar pedido
+        // Opcion1: confirmar pedido
         from("direct:orden-confirmada")
             .process(exchange -> {
                 String ordenId = exchange.getMessage().getHeader("ordenId", String.class);
@@ -66,7 +66,7 @@ public class OrderProcessRoute extends RouteBuilder {
             })
             .log("${body}");
 
-        // Paso 4b: rechazar pedido
+        // Opcion2: rechazar pedido
         from("direct:orden-rechazada")
             .process(exchange -> {
                 String ordenId = exchange.getMessage().getHeader("ordenId", String.class);

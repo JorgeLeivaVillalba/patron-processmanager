@@ -1,5 +1,7 @@
 # PROCESS MANAGER
 
+![Process Manager](ProcessManager.gif)
+
 El patrón **Process Manager** es un patrón de arquitectura de integración empresarial (Enterprise Integration Pattern) que se utiliza para coordinar y controlar el flujo de un proceso de negocio complejo que involucra múltiples pasos o servicios.
 
 Un Process Manager es un componente que mantiene el estado de un proceso de negocio a largo plazo, coordina las interacciones entre varios servicios o tareas que lo componen y decide qué acción ejecutar a continuación en función de los eventos o resultados anteriores.
